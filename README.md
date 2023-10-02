@@ -1,5 +1,9 @@
 # ChatGPT File Converter
 ## Overview
+<div style="text-align:center; padding: 20px;">
+  <img src="https://github.com/alex-roh/ChatGPT-File-Converter/assets/54312875/ed9e7dd5-18d3-4ed7-b668-06381a2a74be" alt="GUI screen" style="height: 400px;">
+</div>
+
 The ChatGPT File Converter is a Python program that streamlines interactions with the ChatGPT model. It simplifies the process of splitting files, attaching prompts to each segment, sending them to the ChatGPT model for processing, and then concatenating the responses into a final output file.
 
 ## Features
