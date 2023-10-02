@@ -12,7 +12,7 @@ The ChatGPT File Converter is a Python program that streamlines interactions wit
 1. **Installation**: Clone this repository to your local machine.
 
     ```bash
-    git clone https://github.com/your-username/ChatGPT-File-Converter.git
+    git clone https://github.com/alex-roh/ChatGPT-File-Converter.git
     ```
 
 2. **Setup**: Install the necessary dependencies by running:
@@ -35,7 +35,7 @@ The ChatGPT File Converter is a Python program that streamlines interactions wit
 Contributions are welcome! If you have ideas for improvements or new features, please feel free to submit issues or pull requests.
 
 ## License
-This project is licensed under the MIT License - see the LICENSE file for details.
+This project is licensed under the MIT License.
 
 ---
 
