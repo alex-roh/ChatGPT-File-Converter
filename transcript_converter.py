@@ -1,3 +1,7 @@
+"""
+Depreciated. Use FileConverterApp.py instead.
+"""
+
 import os
 import openai
 import tiktoken
@@ -7,7 +11,7 @@ from tkinter import *
 from tkinter import filedialog, messagebox
 import customtkinter
 
-MODEL_TOKEN_LIMIT = 600
+MODEL_TOKEN_LIMIT = 2000
 AVERAGE_CHARS_PER_TOKEN = 7 # Assuming an average of 5 characters per token for English
 
 openai.api_key = os.environ.get('OPENAI_API_KEY')
