@@ -3,3 +3,4 @@ build/
 transcript_converter.spec
 Screen.PNG
 prompt files/
+__pycache__/

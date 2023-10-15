@@ -1,9 +1,13 @@
+import functools
 import os
 import inspect
 from GPTHandler import GPTHandler
 from Observable import Observable
+from decorators import log_function_call
 
 class FileHandler(Observable):
+
+    models = GPTHandler.models
 
     def __init__(self):
         
@@ -21,19 +25,20 @@ class FileHandler(Observable):
         self.chunk_chars = 0
     
     @staticmethod
-    def __clamp(x, min_val, max_val):
+    def _clamp(x, min_val, max_val):
         return max(min_val, min(max_val, x))
 
+    @log_function_call
     @staticmethod
     # Split the content into chunks of {chunk_chars}
-    def __split_content_by_estimate(content, chunk_chars):
+    def _split_content_by_estimate(content, chunk_chars):
         chunks = []
         content_len = len(content)
         start_idx = 0
         is_final = False
 
         while not is_final:
-            end_idx = FileHandler.__clamp(start_idx + chunk_chars, 0, content_len)
+            end_idx = FileHandler._clamp(start_idx + chunk_chars, 0, content_len)
             is_final = (end_idx == content_len)
             # To save its original index in case we need to backtrack
             original_end_idx = end_idx
@@ -48,8 +53,9 @@ class FileHandler(Observable):
 
         return chunks
     
+    @log_function_call
     @staticmethod
-    def __save_response(base_name, path, response, format):
+    def _save_response(base_name, path, response, format):
         file_name = os.path.join(path, f"GPT_{base_name}{format}")
         try:
             with open(file_name, 'w', encoding='utf-8') as f:
@@ -57,6 +63,7 @@ class FileHandler(Observable):
         except Exception as e:
             print(f"{inspect.currentframe().f_code.co_name}: An error occurred while saving the file: {e}")
 
+    @log_function_call
     # Set the default directory for content files
     def set_default_dir(self):
         directory_path = self.notify("request_directory")
@@ -71,9 +78,9 @@ class FileHandler(Observable):
                 # Notifying observer to show error
                 self.notify("show_error", message=f"An error occurred while reading the directory: {e}")
     
+    @log_function_call
     # Open the prompt file
     def open_prompt_file(self):
-
         initial_directory = self.default_dir if self.default_dir else None
         prompt_file = self.notify("request_prompt_file", initialdir=initial_directory)
 
@@ -88,6 +95,7 @@ class FileHandler(Observable):
             except Exception as e:
                 self.notify("show_error", message=f"An error occurred while reading the file: {e}")
 
+    @log_function_call
     # Open the content file
     def open_content_file(self):
         # Open the content file
@@ -109,8 +117,9 @@ class FileHandler(Observable):
             except Exception as e:
                 self.notify("show_error", message=f"An error occurred while reading the file: {e}")
 
+    @log_function_call
     # Set the chunks to the request
-    def set_chunks(self, language):
+    def _set_chunks(self, language):
         # Check if the prompt and content files are selected
         if not self.input_content or not self.prompt_content:
             self.notify("show_error", message="Please ensure both the prompt and input files are selected.")
@@ -122,22 +131,31 @@ class FileHandler(Observable):
         # Split the content into chunks
         if self.chunk_chars > 0:
             self._set_chunks_content()
-            self.notify("update_chunk_label", chunk_count=len(self.chunks_content))
             print(f"language: {language}, chunk_chars: {self.chunk_chars}, chunks_content: {len(self.chunks_content)}")
     
+    @log_function_call
     # Run the file converter
-    def run_file_converter(self, output_format):
+    def run_file_converter(self, language, gpt_model, output_format):
+        # Set the maximum token according to the selected model
+        GPTHandler.change_tokens(gpt_model)
+
+        # Set the chunks to the request
+        self._set_chunks(language)
         
         # Check if the block size and chunks are set
         if not self.chunk_chars or not self.chunks_content:
             self.notify("show_error", message=f"Please ensure the chunks are set.")
             return
+        
+        # Update the number of chunks
+        self.notify("set_num_chunks", num_chunks=len(self.chunks_content))
 
-        accumulated_response = GPTHandler.start_threaded_get_response(self.prompt_content, self.chunks_content)
-        FileHandler.__save_response(self.input_base_name, self.input_path, accumulated_response, output_format)
+        accumulated_response = GPTHandler.start_threaded_get_response(self.prompt_content, self.chunks_content, lambda **kwargs: self.notify("set_processed_chunks", **kwargs))
+        FileHandler._save_response(self.input_base_name, self.input_path, accumulated_response, output_format)
         self.notify("update_run_label", run_count=len(self.chunks_content))
 
     # Private methods
+    @log_function_call
     def _set_chunk_chars(self, language):
         chunk_chars = GPTHandler.calculate_chunk_chars(self.prompt_content, language)
         if chunk_chars == 0:
@@ -146,8 +164,9 @@ class FileHandler(Observable):
         else:
             self.chunk_chars = chunk_chars
     
+    @log_function_call
     def _set_chunks_content(self):
-        chunks_content = FileHandler.__split_content_by_estimate(self.input_content, self.chunk_chars)
+        chunks_content = FileHandler._split_content_by_estimate(self.input_content, self.chunk_chars)
         if not chunks_content:
             self.notify("show_error", message=f"An error occurred while splitting the content.")
             self.notify("reset_labels")
@@ -155,9 +174,3 @@ class FileHandler(Observable):
             self.chunks_content = chunks_content
             for _, chunk in enumerate(self.chunks_content):
                 print(f"{_ + 1}th chunk: {GPTHandler.get_token_count(chunk)} tokens")
-
-    # Callback methods
-    def _on_gpthandler_thread_complete(self, processed_chunks):
-        # This is called when GPTHandler's thread completes its task.
-        # Notify the FileConverterApp.
-        self.notify("one_thread_processing_complete", run_count=processed_chunks)
